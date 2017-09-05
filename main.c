@@ -23,6 +23,61 @@ InputBuffer* new_input_buffer(){
     return input_buffer;
 }
 
+enum MetaCommandResult_t{
+    META_COMMAND_SUCCESS,
+    META_COMMAND_UNRECOGNIZED_COMMAND
+};
+typedef enum MetaCommandResult_t MetaCommandResult;
+
+enum PrepareResult_t{
+    PREPARE_SUCCESS,
+    PREPARE_UNRECOGNIZED_STATEMENTS
+};
+typedef enum  PrepareResult_t PrepareResult;
+
+enum StatementType_t {
+    STATEMENT_INSERT,
+    STATEMENT_SELECT
+};
+typedef enum StatementType_t StatementType;
+
+struct Statement_t{
+    StatementType type;
+};
+typedef struct Statement_t Statement;
+
+MetaCommandResult do_meta_command(InputBuffer *inputBuffer){
+    if(strcmp(inputBuffer->buffer, ".exit") == 0){
+        exit(EXIT_SUCCESS);
+    }else {
+        return META_COMMAND_UNRECOGNIZED_COMMAND;
+    }
+}
+
+PrepareResult prepare_statement(InputBuffer* inputBuffer, Statement* statement){
+    if(strncmp(inputBuffer->buffer, "insert", 6) == 0){
+        statement->type = STATEMENT_INSERT;
+        return PREPARE_SUCCESS;
+    }
+    if (strcmp(inputBuffer->buffer, "select") == 0) {
+       statement->type = STATEMENT_SELECT;
+        return PREPARE_SUCCESS;
+    }
+    return PREPARE_UNRECOGNIZED_STATEMENTS;
+}
+
+void execute_statement(Statement* statement){
+    switch (statement->type){
+        case STATEMENT_INSERT:
+            printf("This is where we would do an insert.\n");
+            break;
+        case STATEMENT_SELECT:
+            printf("This is where we would do an select.\n");
+            break;
+    }
+}
+
+
 void print_prompt() {
     printf("db > ");
 }
@@ -44,11 +99,26 @@ int main(int argc, char** args) {
         print_prompt();
         read_input(inputBuffer);
 
-        if(strcmp(inputBuffer->buffer, ".exit") == 0){
-            exit(EXIT_SUCCESS);
-        }else{
-            printf("Unrecognized command '%s'.\n", inputBuffer->buffer);
+        if(inputBuffer->buffer[0] == '.'){
+            switch (do_meta_command(inputBuffer)){
+                case META_COMMAND_SUCCESS:
+                    continue;
+                case META_COMMAND_UNRECOGNIZED_COMMAND:
+                    printf("Unrecognized command '%s'.\n", inputBuffer->buffer);
+                    continue;
+            }
         }
+
+        Statement statement;
+        switch (prepare_statement(inputBuffer, &statement)){
+            case PREPARE_SUCCESS:
+                break;
+            case PREPARE_UNRECOGNIZED_STATEMENTS:
+                printf("Unrecognized keyword at start of '%s'.\n", inputBuffer->buffer);
+                continue;
+        }
+        execute_statement(&statement);
+        printf("Execcted!\n");
     }
 }
 
